@@ -73,44 +73,71 @@ stages:
 #        ArtifactName: SeleniumTestResults
 #        publishLocation: Container
 #      displayName: "Publishing the report"
-      
-    # Step 5: To import application in non prod environment
+
+# Step: Create a change request in servicenow
     - task: PowerShell@2
       inputs:
         targetType: inline
         script: |
-          Write-Host "Starting import to ServiceNow..."
+          $url = "https://dev212832.service-now.com/api/now/table/change_request"
+          $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:tt!rSy25Y^SK"))
+          $headers = @{
+                "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:tt!rSy25Y^SK"))
+                "Content-Type" = "application/json"
+              }
+          $body = @{
+            "short_description" = "Azure Pipeline Success: $(Build.DefinitionName)"
+            "description" = "Pipeline succeeded for build $(Build.BuildId)"
+            "category" = "Software"
+            "type" = "Normal"
+            "priority" = "4"
+            "assignment_group" = "Change Management"
+          } | ConvertTo-Json
+          Write-Host "URI: $url"
+          Write-Host "Auth: $auth"
+          Write-Host "headers: $headers"
+          Write-Host "body: $body"
+          $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+          $changeRequestId = $response.result.sys_id
+          Write-Host "Change Request created with SysID: $changeRequestId"
 
-          # Variables
-          $serviceNowUrl ='https://dev273137.service-now.com/api/sn_cicd/sc/import'
-          $repoUrl ='https://github.com/vinitamishra15/Mock_code_repo.git'
-          $branchName ='main'
-          $credentialSysId ='b2614f9f972d1210bc6b938de053afa3'
-          $username ='admin'  # Consider using a secure variable
-          $password ='QoPpaNr5F*$9'  # Consider using a secure variable
-          
-          # Build the full URL with URL encoding
-          $encodedRepoUrl = [System.Net.WebUtility]::UrlEncode($repoUrl)
-          $encodedBranchName = [System.Net.WebUtility]::UrlEncode($branchName)
+    # Step 5: To import application in non prod environment
+#    - task: PowerShell@2
+#      inputs:
+#        targetType: inline
+#        script: |
+#          Write-Host "Starting import to ServiceNow..."
 
-          Write-Host "serviceNowUrl: $serviceNowUrl"
-          # Build the full URL
-          $fullUrl = "$($serviceNowUrl)?repo_url=$encodedRepoUrl&branch_name=$encodedBranchName&credential_sys_id=$credentialSysId"
-
-          # Output the full URL for debugging
-          Write-Host "Full URL: $fullUrl"
-
-          # Invoke the ServiceNow API
-          $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-          $credential = New-Object System.Management.Automation.PSCredential($username, $securePassword)
-
-          Invoke-RestMethod -Uri $fullUrl -Method Post -Headers @{
-            "Accept" = "application/json"
-            "Content-Type" = "application/json"  # Set the Content-Type header
-          } -Credential $credential -Body @{}
-
-          Write-Host "Import initiated."
-      displayName: "Import application from GitHub to ServiceNow"
+#          # Variables
+#          $serviceNowUrl ='https://dev273137.service-now.com/api/sn_cicd/sc/import'
+#          $repoUrl ='https://github.com/vinitamishra15/Mock_code_repo.git'
+#          $branchName ='main'
+#          $credentialSysId ='b2614f9f972d1210bc6b938de053afa3'
+#          $username ='admin'  # Consider using a secure variable
+#          $password ='QoPpaNr5F*$9'  # Consider using a secure variable
+#          
+#          # Build the full URL with URL encoding
+#          $encodedRepoUrl = [System.Net.WebUtility]::UrlEncode($repoUrl)
+#          $encodedBranchName = [System.Net.WebUtility]::UrlEncode($branchName)
+#
+#          Write-Host "serviceNowUrl: $serviceNowUrl"
+#          # Build the full URL
+#          $fullUrl = "$($serviceNowUrl)?repo_url=$encodedRepoUrl&branch_name=$encodedBranchName&credential_sys_id=$credentialSysId"
+#
+#          # Output the full URL for debugging
+#          Write-Host "Full URL: $fullUrl"
+#
+#          # Invoke the ServiceNow API
+#          $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+#          $credential = New-Object System.Management.Automation.PSCredential($username, $securePassword)
+#
+#          Invoke-RestMethod -Uri $fullUrl -Method Post -Headers @{
+#            "Accept" = "application/json"
+#            "Content-Type" = "application/json"  # Set the Content-Type header
+#          } -Credential $credential -Body @{}
+#
+#          Write-Host "Import initiated."
+#      displayName: "Import application from GitHub to ServiceNow"
 
     - task: PowerShell@2
       inputs:
