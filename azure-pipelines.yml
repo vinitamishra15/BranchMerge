@@ -38,9 +38,8 @@ stages:
 
     - task: PowerShell@2
       inputs:
-        targetType: inline
-        script: |
-          Write-Host "Build Source directory: $(Build.SourcesDirectory)"
+        filePath: $(Build.SourcesDirectory)/pws_scripts.ps1
+      displayName: "Creating change request"
 
 
     # Step 2: Prepare SonarQube for scan
