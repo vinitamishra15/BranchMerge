@@ -4,11 +4,10 @@ resources:
      type: github
      endpoint: GitHubConn
      name: vinitamishra15/Mock_code_repo
-   - repository: Demo_test
+   - repository: BranchMerge
      type: github
      endpoint: GitHubConn
-     name: vinitamishra15/Demo_test
-     ref: refs/heads/master
+     name: vinitamishra15/BranchMerge
 
 trigger:
 - main
@@ -35,7 +34,14 @@ stages:
     # Step 1: Checkout the code from GitHub
     - checkout: self
     - checkout: Mock_code_repo
-    - checkout: Demo_test
+    - checkout: BranchMerge
+
+    - task: PowerShell@2
+      inputs:
+        targetType: inline
+        script: |
+          Write-Host "Build Source directory: $(Build.SourcesDirectory)"
+
 
     # Step 2: Prepare SonarQube for scan
 #    - task: SonarQubePrepare@6
@@ -75,31 +81,14 @@ stages:
 #      displayName: "Publishing the report"
 
 # Step: Create a change request in servicenow
-    - task: PowerShell@2
-      inputs:
-        targetType: inline
-        script: |
-          $url = "https://dev212832.service-now.com/api/now/table/change_request"
-          $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:tt!rSy25Y^SK"))
-          $headers = @{
-                "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:tt!rSy25Y^SK"))
-                "Content-Type" = "application/json"
-              }
-          $body = @{
-            "short_description" = "Azure Pipeline Success: $(Build.DefinitionName)"
-            "description" = "Pipeline succeeded for build $(Build.BuildId)"
-            "category" = "Software"
-            "type" = "Normal"
-            "priority" = "4"
-            "assignment_group" = "Change Management"
-          } | ConvertTo-Json
-          Write-Host "URI: $url"
-          Write-Host "Auth: $auth"
-          Write-Host "headers: $headers"
-          Write-Host "body: $body"
-          $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
-          $changeRequestId = $response.result.sys_id
-          Write-Host "Change Request created with SysID: $changeRequestId"
+#    - task: PowerShell@2
+#      inputs:
+#       filePath: 
+#    displayName: "Creating change request"
+
+# Step 2: If production, check for manual approval before proceeding
+
+
 
     # Step 5: To import application in non prod environment
 #    - task: PowerShell@2
