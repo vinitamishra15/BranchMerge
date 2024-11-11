@@ -60,31 +60,33 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
-                Write-Host "URL: $url"
-                Write-Host "sys_id: $changeRequestSysId"
-                $approvalStatus = ""
-                
-                while ($true) {
-                  $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{
-                    Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
-                  }
-                  
-                  $approvalStatus = $response.result.approval
-                  
-                  if ($approvalStatus -eq "approved") {
-                    Write-Host "Change Request approved."
-                    break
-                  }
-                  elseif ($approvalStatus -eq "rejected") {
-                    Write-Host "Change Request rejected."
-                    throw "Approval Rejected"
-                  }
-                  else {
-                    Write-Host "Approval pending. Checking again in 30 seconds..."
-                    Start-Sleep -Seconds 30
-                  }
-                }
+                Write-Host "sys_id: $(changeRequestSysId)"
+                Write-Host "sys_id 2 : $changeRequestSysId"
+                Write-Host "sys_id 2 : $env:changeRequestSysId"
+#                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
+#                Write-Host "URL: $url"
+#                $approvalStatus = ""
+#                
+#                while ($true) {
+#                  $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{
+#                    Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
+#                  }
+#                  
+#                  $approvalStatus = $response.result.approval
+#                  
+#                  if ($approvalStatus -eq "approved") {
+#                    Write-Host "Change Request approved."
+#                    break
+#                  }
+#                  elseif ($approvalStatus -eq "rejected") {
+#                    Write-Host "Change Request rejected."
+#                    throw "Approval Rejected"
+#                  }
+#                  else {
+#                    Write-Host "Approval pending. Checking again in 30 seconds..."
+#                    Start-Sleep -Seconds 30
+#                  }
+#                }
 
   - stage: PostApproval
     dependsOn: ApprovalCheck
