@@ -3,6 +3,9 @@ trigger:
 
 pool: Default
 
+variables:
+  sys_id: ''
+
 steps:
 
 # Task 1: Assign value to sys_id variable
