@@ -47,6 +47,7 @@ stages:
               # Extract change request sys_id and state
               $changeRequestSysId = $changeResponse.result.sys_id
               Write-Host "Created Change Request with sys_id: $changeRequestSysId"
+              Write-Host "CR Number:" $response.result.number
 
               # Store the sys_id as a pipeline variable for next steps
               Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
@@ -69,7 +70,7 @@ stages:
                       Authorization = "Basic $auth"
                       "Content-Type" = "application/json"
                   }
-                  $status = $response.result.state
+                  $status = $response.result.phase_state
                   Write-Host "Current Change Request state: $status"
 
                   if ($status -eq "Scheduled") {
