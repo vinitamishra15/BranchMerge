@@ -1,36 +1,102 @@
+resources:
+ repositories:
+   - repository: Mock_code_repo
+     type: github
+     endpoint: GitHubConn
+     name: vinitamishra15/Mock_code_repo
+   - repository: BranchMerge
+     type: github
+     endpoint: GitHubConn
+     name: vinitamishra15/BranchMerge
+
 trigger:
 - main
 
 pool: Default
 
+variables:
+  serviceNowInstance: 'https://dev212832.service-now.com'
+  userName: 'admin'
+  password: 'tt!rSy25Y^SK'
+  changeRequestSysId: ''
+
 stages:
+  - stage: CreateChangeRequest
+    jobs:
+      - job: CreateChange
+        steps:
+          - task: PowerShell@2
+            name: CreateChangeTask
+            inputs:
+              targetType: 'inline'
+              script: |
+                $url = "$(serviceNowInstance)/api/now/table/change_request"
+                $body = @{
+                  short_description = "Azure Pipeline Change Request - CR approval"
+                  description = "Change Request created by Azure Pipeline to approve and deploy application"
+                  approval = "requested"
+                } | ConvertTo-Json
 
-- stage: Build
-  displayName: 'Build Stage'
-  jobs:
-    - job: BuildJob
-      steps:
-        - task: PowerShell@2
-          displayName: 'Set sys_id variable'
-          inputs:
-            targetType: 'inline'
-            script: |
-              # Set the variable sys_id
-              $sys_id = "12345"
-              Write-Host "##vso[task.setvariable variable=sys_id;isOutput=true]$sys_id"
-              Write-Host "sys_id has been set to $sys_id"
+                Write-Host "Host URL: $url"
+                $response = Invoke-RestMethod -Uri $url -Method Post -Headers @{
+                  Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
+                  'Content-Type' = 'application/json'
+                } -Body $body
+                
+                if ($response.result) {
+                  Write-Host "Change Request created successfully."
+                  Write-Host "CR Sys ID:" $response.result.sys_id
+                  Write-Host "CR Number:" $response.result.number
 
-- stage: Deploy
-  displayName: 'Deploy Stage'
-  dependsOn: Build  # This ensures Deploy runs after Build
-  jobs:
-    - job: DeployJob
-      steps:
-        - task: PowerShell@2
-          displayName: 'Access sys_id from Build stage'
-          inputs:
-            targetType: 'inline'
-            script: |
-              # Access the output variable from the Build stage
-              $sys_id_from_build = $(dependencies.Build.BuildJob.sys_id)
-              Write-Host "The sys_id passed from Build stage is: $sys_id_from_build"
+                # Set output variable with the CR sys_id
+                  Write-Output ("##vso[task.setvariable variable=changeRequestSysId;isOutput=true]$($response.result.sys_id)")
+                } else {
+                  Write-Host "Failed to create Change Request."
+                  exit 1
+                }
+          - task: PowerShell@2
+            displayName: 'Check CR approval status'
+            condition: and(succeeded(), eq(variables['environment'], 'production'))
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "sys_id: $(changeRequestSysId)"
+                Write-Host "sys_id 2 : $changeRequestSysId"
+                Write-Host "sys_id 2 : $env:changeRequestSysId"
+                Write-Host "Value: $[ dependencies.CreateChangeRequest.outputs['CreateChange.CreateChangeTask.changeRequestSysId'] ]"
+#                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
+#                Write-Host "URL: $url"
+#                $approvalStatus = ""
+#                
+#                while ($true) {
+#                  $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{
+#                    Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
+#                  }
+#                  
+#                  $approvalStatus = $response.result.approval
+#                  
+#                  if ($approvalStatus -eq "approved") {
+#                    Write-Host "Change Request approved."
+#                    break
+#                  }
+#                  elseif ($approvalStatus -eq "rejected") {
+#                    Write-Host "Change Request rejected."
+#                    throw "Approval Rejected"
+#                  }
+#                  else {
+#                    Write-Host "Approval pending. Checking again in 30 seconds..."
+#                    Start-Sleep -Seconds 30
+#                  }
+#                }
+
+  - stage: PostApproval
+    dependsOn: CreateChangeRequest
+    condition: succeeded()
+    jobs:
+      - job: PostApprovalActions
+        steps:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "CR completed"
