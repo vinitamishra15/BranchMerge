@@ -18,10 +18,11 @@ stages:
               targetType: 'inline'
               script: |
                 $sys_id = "12345"  # You can change this value as needed
-                Write-Host "##vso[task.setvariable variable=sys_id]$sys_id"
+                Write-Host "##vso[task.setvariable variable=sys_id;isOutput=true]$sys_id"
                 Write-Host "sys_id has been set to $sys_id"
 
   - stage: printVariable
+    dependsOn: assignVariable
     jobs:
       - job:
         steps:
@@ -31,4 +32,5 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                Write-Host "The value of sys_id is: $env:sys_id"
+                $sys_id_from_build = $(Build.BuildId)
+                Write-Host "The value of sys_id is: $sys_id_from_build"
