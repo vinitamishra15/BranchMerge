@@ -63,6 +63,7 @@ stages:
                 Write-Host "sys_id: $(changeRequestSysId)"
                 Write-Host "sys_id 2 : $changeRequestSysId"
                 Write-Host "sys_id 2 : $env:changeRequestSysId"
+                Write-Host "Value: $[ dependencies.CreateChangeRequest.outputs['CreateChange.CreateChangeTask.changeRequestSysId'] ]"
 #                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
 #                Write-Host "URL: $url"
 #                $approvalStatus = ""
