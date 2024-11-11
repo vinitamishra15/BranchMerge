@@ -73,7 +73,7 @@ stages:
                   $status = $response.result.approval
                   Write-Host "Current Change Request state: $status"
 
-                  if ($status -eq "Scheduled") {
+                  if ($status -eq "approved") {
                       Write-Host "Change Request is Scheduled."
                       break
                   }
