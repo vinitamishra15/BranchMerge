@@ -1,177 +1,87 @@
 resources:
  repositories:
-   - repository: Mock_code_repo
-     type: github
-     endpoint: GitHubConn
-     name: vinitamishra15/Mock_code_repo
    - repository: BranchMerge
-     type: github
      endpoint: GitHubConn
-     name: vinitamishra15/BranchMerge
 
 trigger:
-- main
+  branches:
+    include:
+      - main
 
-#Currently using self hosted agent
 pool: Default
 
 variables:
-  serviceNowUrl: https://dev273137.service-now.com/
-  serviceNowUsername: '$(serviceNowUser)'
-  serviceNowPassword: '$(serviceNowPassword)'
-  IMPORT_URL: 'https://dev273137.service-now.com/api/sn_cicd/import'
-  IMPORT_USER: 'admin'
-  IMPORT_PWD: 'QoPpaNr5F*$9'  # Consider using a secure variable for this
-  GITHUB_REPO_URL: 'https://github.com/vinitamishra15/Mock_code_repo.git'
-  APP_NAME: 'YourAppName'
+  serviceNowInstance: 'https://dev273137.service-now.com/'
+  userName: 'admin'
+  password: 'QoPpaNr5F*$9'
+  changeRequestSysId: '0'
 
 stages:
-- stage: build
-  jobs:
-  - job: Build
-    steps:
+  - stage: CreateChangeRequest
+    jobs:
+      - job: CreateChange
+        steps:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                $url = "$(serviceNowInstance)/api/now/table/change_request"
+                $body = @{
+                  short_description = "Azure Pipeline Change Request - CR approval"
+                  description = "Change Request created by Azure Pipeline to approve and deploy application"
+                  approval = "requested"
+                } | ConvertTo-Json
 
-    # Step 1: Checkout the code from GitHub
-    - checkout: self
-    - checkout: Mock_code_repo
-    - checkout: BranchMerge
+                $response = Invoke-RestMethod -Uri $url -Method Post -Headers @{
+                  Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
+                  'Content-Type' = 'application/json'
+                } -Body $body
+                
+                Write-Host "Change Request created with Sys ID: $($response.result.sys_id)"
+                Write-Output "##vso[task.setvariable variable=changeRequestSysId]$($response.result.sys_id)"
 
-    - task: PowerShell@2
-      inputs:
-        filePath: $(Build.SourcesDirectory)/BranchMerge/pws_scripts.ps1
-      displayName: "Creating change request"
+  - stage: ApprovalCheck
+    dependsOn: CreateChangeRequest
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main')) # Run only on production branch if needed
+    jobs:
+      - job: WaitForApproval
+        steps:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
+                $approvalStatus = ""
+                
+                while ($true) {
+                  $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{
+                    Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
+                  }
+                  
+                  $approvalStatus = $response.result.approval
+                  
+                  if ($approvalStatus -eq "approved") {
+                    Write-Host "Change Request approved."
+                    break
+                  }
+                  elseif ($approvalStatus -eq "rejected") {
+                    Write-Host "Change Request rejected."
+                    throw "Approval Rejected"
+                  }
+                  else {
+                    Write-Host "Approval pending. Checking again in 30 seconds..."
+                    Start-Sleep -Seconds 30
+                  }
+                }
 
-
-    # Step 2: Prepare SonarQube for scan
-#    - task: SonarQubePrepare@6
-#      inputs:
-#         SonarQube: 'Sonar_conn'
-#         scannerMode: CLI
-#         configMode: file
-##         configFile: 'sonar-project.properties'
-#         cliProjectKey: DemoScan
-#         cliProjectName: DemoScan
-
-#    # Step 3: Run SonarQube scan
-#    - script: |
-#        sonar-scanner -Dsonar.projectKey=DemoScan -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000/ -Dsonar.login=sqa_308859b46080fb65c3121ee7b6db0b465a4ea3ad
-##      workingDirectory: dummy_repo
-#      displayName: 'Run SonarQube Analysis'
-
-#    # Step 3: Prepare to run test cases
-#    - script: |
-#        python -m pip install --upgrade pip
-#        pip install selenium
-#        pip install webdriver-manager
-#        pip install pytest
-#        pip install pytest-html
-#      displayName: 'Install dependencies for selenium'
-
-#    # Step 4: Run Selenium test cases
-#    - script: |
-#        pytest Demo_test/Testcase/test_E2EDemoApp.py --maxfail=1 --disable-warnings -q --html=testReport.html
-#      displayName: 'Run selenium test cases and generate test reports'
-      
-#    - task: PublishBuildArtifacts@1
-#      inputs:
-#        PathtoPublish: testReport.html
-#        ArtifactName: SeleniumTestResults
-#        publishLocation: Container
-#      displayName: "Publishing the report"
-
-# Step: Create a change request in servicenow
-#    - task: PowerShell@2
-#      inputs:
-#       filePath: 
-#    displayName: "Creating change request"
-
-# Step 2: If production, check for manual approval before proceeding
-
-
-
-    # Step 5: To import application in non prod environment
-#    - task: PowerShell@2
-#      inputs:
-#        targetType: inline
-#        script: |
-#          Write-Host "Starting import to ServiceNow..."
-
-#          # Variables
-#          $serviceNowUrl ='https://dev273137.service-now.com/api/sn_cicd/sc/import'
-#          $repoUrl ='https://github.com/vinitamishra15/Mock_code_repo.git'
-#          $branchName ='main'
-#          $credentialSysId ='b2614f9f972d1210bc6b938de053afa3'
-#          $username ='admin'  # Consider using a secure variable
-#          $password ='QoPpaNr5F*$9'  # Consider using a secure variable
-#          
-#          # Build the full URL with URL encoding
-#          $encodedRepoUrl = [System.Net.WebUtility]::UrlEncode($repoUrl)
-#          $encodedBranchName = [System.Net.WebUtility]::UrlEncode($branchName)
-#
-#          Write-Host "serviceNowUrl: $serviceNowUrl"
-#          # Build the full URL
-#          $fullUrl = "$($serviceNowUrl)?repo_url=$encodedRepoUrl&branch_name=$encodedBranchName&credential_sys_id=$credentialSysId"
-#
-#          # Output the full URL for debugging
-#          Write-Host "Full URL: $fullUrl"
-#
-#          # Invoke the ServiceNow API
-#          $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-#          $credential = New-Object System.Management.Automation.PSCredential($username, $securePassword)
-#
-#          Invoke-RestMethod -Uri $fullUrl -Method Post -Headers @{
-#            "Accept" = "application/json"
-#            "Content-Type" = "application/json"  # Set the Content-Type header
-#          } -Credential $credential -Body @{}
-#
-#          Write-Host "Import initiated."
-#      displayName: "Import application from GitHub to ServiceNow"
-
-    - task: PowerShell@2
-      inputs:
-        targetType: inline
-        script: |
-          if ($LASTEXITCODE -ne 0) {
-            $url = "https://dev212832.service-now.com/api/now/table/incident"
-            $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:tt!rSy25Y^SK"))
-            $headers = @{
-                "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:tt!rSy25Y^SK"))
-                "Content-Type" = "application/json"
-              }
-            $body = @{
-                "short_description" = "Azure Pipeline Failure: $(Build.DefinitionName)"
-                "description" = "Pipeline failed on $(Build.BuildId)"
-              } | ConvertTo-Json
-                        Write-Host "URI: $url"
-          Write-Host "Auth: $auth"
-          Write-Host "headers: $headers"
-          Write-Host "body: $body"
-              Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
-          }
-      condition: failed()
-
-    - task: PowerShell@2
-      inputs:
-        targetType: inline
-        script: |
-          $url = "https://dev212832.service-now.com/api/now/table/change_request"
-          $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:tt!rSy25Y^SK"))
-          $headers = @{
-                "Authorization" = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:tt!rSy25Y^SK"))
-                "Content-Type" = "application/json"
-              }
-          $body = @{
-            "short_description" = "Azure Pipeline Success: $(Build.DefinitionName)"
-            "description" = "Pipeline succeeded for build $(Build.BuildId)"
-            "category" = "Software"
-            "type" = "Normal"
-            "priority" = "4"
-            "assignment_group" = "Change Management"
-          } | ConvertTo-Json
-          Write-Host "URI: $url"
-          Write-Host "Auth: $auth"
-          Write-Host "headers: $headers"
-          Write-Host "body: $body"
-          $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
-          Write-Host "Change Request created with SysID: $($response.result.sys_id)"
-      condition: succeeded()
+  - stage: PostApproval
+    dependsOn: ApprovalCheck
+    condition: succeeded()
+    jobs:
+      - job: PostApprovalActions
+        steps:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "CR completed"
