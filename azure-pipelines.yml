@@ -15,9 +15,9 @@ trigger:
 pool: Default
 
 variables:
-  serviceNowInstance: 'https://dev273137.service-now.com'
+  serviceNowInstance: 'https://dev212832.service-now.com'
   userName: 'admin'
-  password: 'QoPpaNr5F*$9'
+  password: 'tt!rSy25Y^SK'
   changeRequestSysId: '0'
 
 stages:
@@ -36,6 +36,7 @@ stages:
                   approval = "requested"
                 } | ConvertTo-Json
 
+                Write-Host "Host URL: $url"
                 $response = Invoke-RestMethod -Uri $url -Method Post -Headers @{
                   Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
                   'Content-Type' = 'application/json'
