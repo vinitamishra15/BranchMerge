@@ -44,7 +44,7 @@ stages:
                 
                 $changeRequestSysId = $response.result.sys_id
                 Write-Host "Change Request created with Sys ID: $($response.result.sys_id)"
-                Write-Output "##vso[task.setvariable variable=changeRequestSysId]$($response.result.sys_id)"
+                Write-Output "##vso[task.setvariable variable=changeRequestSysId;isOutput=true]$changeRequestSysId"
                 Write-Host "Change request created with $changeRequestSysId"
 
   - stage: ApprovalCheck
