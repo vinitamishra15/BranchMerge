@@ -1,12 +1,16 @@
 resources:
  repositories:
-   - repository: BranchMerge
+   - repository: Mock_code_repo
+     type: github
      endpoint: GitHubConn
+     name: vinitamishra15/Mock_code_repo
+   - repository: BranchMerge
+     type: github
+     endpoint: GitHubConn
+     name: vinitamishra15/BranchMerge
 
 trigger:
-  branches:
-    include:
-      - main
+- main
 
 pool: Default
 
