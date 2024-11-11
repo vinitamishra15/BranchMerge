@@ -48,6 +48,12 @@ stages:
                 Write-Output "##vso[task.setvariable variable=changeRequestSysId;isOutput=true]$changeRequestSysId"
                 Write-Host "Change request created with $changeRequestSysId"
 
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "Debug: changeRequestSysId is set to $(changeRequestSysId)"
+
   - stage: ApprovalCheck
     dependsOn: CreateChangeRequest
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main')) # Run only on production branch if needed
