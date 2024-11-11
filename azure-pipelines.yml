@@ -60,34 +60,27 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                Write-Host "sys_id: $(changeRequestSysId)"
-                Write-Host "sys_id 2 : $changeRequestSysId"
-                Write-Host "sys_id 2 : $env:changeRequestSysId"
-                Write-Host "Value: $[ dependencies.CreateChangeRequest.outputs['CreateChange.CreateChangeTask.changeRequestSysId'] ]"
-#                $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
-#                Write-Host "URL: $url"
-#                $approvalStatus = ""
-#                
-#                while ($true) {
-#                  $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{
-#                    Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
-#                  }
-#                  
-#                  $approvalStatus = $response.result.approval
-#                  
-#                  if ($approvalStatus -eq "approved") {
-#                    Write-Host "Change Request approved."
-#                    break
-#                  }
-#                  elseif ($approvalStatus -eq "rejected") {
-#                    Write-Host "Change Request rejected."
-#                    throw "Approval Rejected"
-#                  }
-#                  else {
-#                    Write-Host "Approval pending. Checking again in 30 seconds..."
-#                    Start-Sleep -Seconds 30
-#                  }
-#                }
+                $changeRequestSysId = '$(changeRequestSysId)'
+                $statusCheckUrl = "${{ variables.servicenowInstance }}/api/now/table/change_request/$changeRequestSysId"
+                
+                do {
+                  # Call ServiceNow to get the status of the CR
+                  $response = Invoke-RestMethod -Uri $statusCheckUrl -Method Get -Headers @{Authorization=("Basic " + $credentials); "Content-Type"="application/json"}
+                  $changeRequestState = $response.result.state
+
+                  # Check if status is "Scheduled"
+                  if ($changeRequestState -eq '3') {
+                    Write-Output "Change Request Scheduled"
+                    break
+                  }
+
+                  # Wait for a bit before retrying
+                  Start-Sleep -Seconds 30
+                  Write-Output "Waiting for Change Request to be Scheduled. Current state: $changeRequestState"
+                } while ($changeRequestState -ne '3')
+
+                # Set the variable to trigger the next stage
+                Write-Output "##vso[task.setvariable variable=changeRequestState;isOutput=true]$changeRequestState"
 
   - stage: PostApproval
     dependsOn: CreateChangeRequest
