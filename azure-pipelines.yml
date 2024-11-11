@@ -31,7 +31,7 @@ stages:
 
               # Change Request body (customize based on your ServiceNow change request schema)
               $changeRequestBody = @{
-                short_description = "Automated Change Request for Deployment"
+                short_description = "Automated Change Request for Deployment in Production"
                 description = "Deployment to production environment"
                 category = "Software"
                 type = "Normal"
@@ -47,7 +47,7 @@ stages:
               # Extract change request sys_id and state
               $changeRequestSysId = $changeResponse.result.sys_id
               Write-Host "Created Change Request with sys_id: $changeRequestSysId"
-              Write-Host "CR Number:" $response.result.number
+              Write-Host "CR Number: $response.result.number"
 
               # Store the sys_id as a pipeline variable for next steps
               Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
@@ -62,7 +62,7 @@ stages:
               $changeRequestSysId = "$(changeRequestSysId)"
               $checkUrl = "$servicenowInstance/api/now/table/change_request/$changeRequestSysId"
               $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
-              $status = ""
+              $status = "NA"
 
               # Keep checking the status until it becomes Scheduled
               while ($true) {
