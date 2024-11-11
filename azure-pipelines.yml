@@ -61,7 +61,7 @@ stages:
               script: |
                 $url = "$(serviceNowInstance)/api/now/table/change_request/$(changeRequestSysId)"
                 Write-Host "URL: $url"
-                Write-Host "sys_id: $(changeRequestSysId)"
+                Write-Host "sys_id: $changeRequestSysId"
                 $approvalStatus = ""
                 
                 while ($true) {
