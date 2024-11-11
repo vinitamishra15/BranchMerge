@@ -3,34 +3,33 @@ trigger:
 
 pool: Default
 
-variables:
-  sys_id: ''
-
 stages:
-  - stage: Build
-    jobs:
-      - job: BuildJob
-        steps:
-          # Task 1: Assign value to sys_id variable
-          - task: PowerShell@2
-            displayName: 'Assign value to sys_id'
-            inputs:
-              targetType: 'inline'
-              script: |
-                $sys_id = "12345"  # You can change this value as needed
-                Write-Host "##vso[task.setvariable variable=sys_id;isOutput=true]$sys_id"
-                Write-Host "sys_id has been set to $sys_id"
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+    - job: BuildJob
+      steps:
+        - task: PowerShell@2
+          displayName: 'Set sys_id variable'
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Set the variable sys_id
+              $sys_id = "12345"
+              Write-Host "##vso[task.setvariable variable=sys_id;isOutput=true]$sys_id"
+              Write-Host "sys_id has been set to $sys_id"
 
-  - stage: Deploy
-    dependsOn: Build
-    jobs:
-      - job:
-        steps:
-          # Task 2: Output the value of sys_id
-          - task: PowerShell@2
-            displayName: 'Write sys_id value'
-            inputs:
-              targetType: 'inline'
-              script: |
-                $sys_id_from_build = $(Build.BuildJob.sys_id)
-                Write-Host "The value of sys_id is: $sys_id_from_build"
+- stage: Deploy
+  displayName: 'Deploy Stage'
+  dependsOn: Build  # This ensures Deploy runs after Build
+  jobs:
+    - job: DeployJob
+      steps:
+        - task: PowerShell@2
+          displayName: 'Access sys_id from Build stage'
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Access the output variable from the Build stage
+              $sys_id_from_build = $(Build.BuildJob.sys_id)
+              Write-Host "The sys_id passed from Build stage is: $sys_id_from_build"
