@@ -1,59 +1,25 @@
-resources:
- repositories:
-   - repository: Mock_code_repo
-     type: github
-     endpoint: GitHubConn
-     name: vinitamishra15/Mock_code_repo
-   - repository: BranchMerge
-     type: github
-     endpoint: GitHubConn
-     name: vinitamishra15/BranchMerge
-
 trigger:
 - main
 
-pool: Default
+pool:
+  vmImage: Default
 
-variables:
-  serviceNowInstance: 'https://dev212832.service-now.com'
-  userName: 'admin'
-  password: 'tt!rSy25Y^SK'
-  changeRequestSysId: ''
+steps:
 
-stages:
-  - stage: CreateChangeRequest
-    jobs:
-      - job: CreateChange
-        steps:
-          - task: PowerShell@2
-            name: CreateChangeTask
-            inputs:
-              targetType: 'inline'
-              script: |
-                $url = "$(serviceNowInstance)/api/now/table/change_request"
-                $changeRequestSysId = '1234'
-                Write-Output "##vso[task.setvariable variable=changeRequestSysId;isOutput=true]$changeRequestSysId"
-                Write-Host "Change request created with $changeRequestSysId"
+# Task 1: Assign value to sys_id variable
+- task: PowerShell@2
+  displayName: 'Assign value to sys_id'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $sys_id = "12345"  # You can change this value as needed
+      Write-Host "##vso[task.setvariable variable=sys_id]$sys_id"
+      Write-Host "sys_id has been set to $sys_id"
 
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "Debug: changeRequestSysId is set to $(changeRequestSysId)"
-
-  - stage: ApprovalCheck
-    dependsOn: CreateChangeRequest
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main')) # Run only on production branch if needed
-    jobs:
-      - job: WaitForApproval
-        variables:
-          changeRequestSysId: $[ dependencies.CreateChangeRequest.outputs['CreateChange.CreateChangeTask.changeRequestSysId'] ]
-        steps:
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "sys_id: $(changeRequestSysId)"
-                Write-Host "sys_id 2 : $changeRequestSysId"
-                Write-Host "sys_id 2 : $env:changeRequestSysId"
-                Write-Host "Value: $[ dependencies.CreateChangeRequest.outputs['CreateChange.CreateChangeTask.changeRequestSysId'] ]"
+# Task 2: Output the value of sys_id
+- task: PowerShell@2
+  displayName: 'Write sys_id value'
+  inputs:
+    targetType: 'inline'
+    script: |
+      Write-Host "The value of sys_id is: $env:sys_id"
