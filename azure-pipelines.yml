@@ -47,7 +47,7 @@ stages:
               # Extract change request sys_id and state
               $changeRequestSysId = $changeResponse.result.sys_id
               Write-Host "Created Change Request with sys_id: $changeRequestSysId"
-              Write-Host "CR Number: $response.result.number"
+              Write-Host "CR Number: $changeResponse.result.number"
 
               # Store the sys_id as a pipeline variable for next steps
               Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
