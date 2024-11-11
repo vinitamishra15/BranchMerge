@@ -1,95 +1,93 @@
-resources:
- repositories:
-   - repository: Mock_code_repo
-     type: github
-     endpoint: GitHubConn
-     name: vinitamishra15/Mock_code_repo
-   - repository: BranchMerge
-     type: github
-     endpoint: GitHubConn
-     name: vinitamishra15/BranchMerge
-
 trigger:
-- main
+  branches:
+    include:
+      - main
 
 pool: Default
 
 variables:
-  serviceNowInstance: 'https://dev212832.service-now.com'
-  userName: 'admin'
-  password: 'tt!rSy25Y^SK'
-  changeRequestSysId: ''
+  environment: 'production'  # Change to 'stage' or 'production' as needed
+  servicenowInstance: 'https://dev212832.service-now.com'
+  servicenowUser: 'admin' # ServiceNow username stored as a secret
+  servicenowPassword: 'tt!rSy25Y^SK' # ServiceNow password stored as a secret
 
 stages:
-  - stage: CreateChangeRequest
-    jobs:
-      - job: CreateChange
-        steps:
-          - task: PowerShell@2
-            name: CreateChangeTask
-            inputs:
-              targetType: 'inline'
-              script: |
-                $url = "$(serviceNowInstance)/api/now/table/change_request"
-                $body = @{
-                  short_description = "Azure Pipeline Change Request - CR approval"
-                  description = "Change Request created by Azure Pipeline to approve and deploy application"
-                  approval = "requested"
-                } | ConvertTo-Json
+- stage: CreateAndMonitorChangeRequest
+  displayName: "Create and Monitor Change Request"
+  condition: eq(variables['environment'], 'production')  # Only run if environment is production
+  jobs:
+    - job: CreateChangeRequest
+      displayName: "Create Change Request in ServiceNow"
+      steps:
+        - task: PowerShell@2
+          displayName: "Create Change Request"
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Create change request in ServiceNow
+              $servicenowInstance = "$(servicenowInstance)"
+              $changeRequestUrl = "$servicenowInstance/api/now/table/change_request"
+              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
 
-                Write-Host "Host URL: $url"
-                $response = Invoke-RestMethod -Uri $url -Method Post -Headers @{
-                  Authorization = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$(userName):$(password)"))
-                  'Content-Type' = 'application/json'
-                } -Body $body
-                
-                if ($response.result) {
-                  Write-Host "Change Request created successfully."
-                  Write-Host "CR Sys ID:" $response.result.sys_id
-                  Write-Host "CR Number:" $response.result.number
+              # Change Request body (customize based on your ServiceNow change request schema)
+              $changeRequestBody = @{
+                short_description = "Automated Change Request for Deployment"
+                description = "Deployment to production environment"
+                category = "Software"
+                type = "Normal"
+                # Add other fields as needed
+              } | ConvertTo-Json
 
-                # Set output variable with the CR sys_id
-                  Write-Output ("##vso[task.setvariable variable=changeRequestSysId;isOutput=true]$($response.result.sys_id)")
-                } else {
-                  Write-Host "Failed to create Change Request."
-                  exit 1
-                }
-          - task: PowerShell@2
-            displayName: 'Check CR approval status'
-            condition: and(succeeded(), eq(variables['environment'], 'production'))
-            inputs:
-              targetType: 'inline'
-              script: |
-                $changeRequestSysId = '$(changeRequestSysId)'
-                $statusCheckUrl = "${{ variables.servicenowInstance }}/api/now/table/change_request/$changeRequestSysId"
-                
-                do {
-                  # Call ServiceNow to get the status of the CR
-                  $response = Invoke-RestMethod -Uri $statusCheckUrl -Method Get -Headers @{Authorization=("Basic " + $credentials); "Content-Type"="application/json"}
-                  $changeRequestState = $response.result.state
+              # Make HTTP POST request to create change request
+              $changeResponse = Invoke-RestMethod -Uri $changeRequestUrl -Method Post -Headers @{
+                  Authorization = "Basic $auth"
+                  "Content-Type" = "application/json"
+              } -Body $changeRequestBody
 
-                  # Check if status is "Scheduled"
-                  if ($changeRequestState -eq '3') {
-                    Write-Output "Change Request Scheduled"
-                    break
+              # Extract change request sys_id and state
+              $changeRequestSysId = $changeResponse.result.sys_id
+              Write-Host "Created Change Request with sys_id: $changeRequestSysId"
+
+              # Store the sys_id as a pipeline variable for next steps
+              Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
+
+        - task: PowerShell@2
+          displayName: "Monitor Change Request until Scheduled"
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Initialize
+              $servicenowInstance = "$(servicenowInstance)"
+              $changeRequestSysId = "$(changeRequestSysId)"
+              $checkUrl = "$servicenowInstance/api/now/table/change_request/$changeRequestSysId"
+              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
+              $status = ""
+
+              # Keep checking the status until it becomes Scheduled
+              while ($true) {
+                  $response = Invoke-RestMethod -Uri $checkUrl -Method Get -Headers @{
+                      Authorization = "Basic $auth"
+                      "Content-Type" = "application/json"
+                  }
+                  $status = $response.result.state
+                  Write-Host "Current Change Request state: $status"
+
+                  if ($status -eq "Scheduled") {
+                      Write-Host "Change Request is Scheduled."
+                      break
                   }
 
-                  # Wait for a bit before retrying
-                  Start-Sleep -Seconds 30
-                  Write-Output "Waiting for Change Request to be Scheduled. Current state: $changeRequestState"
-                } while ($changeRequestState -ne '3')
+                  Start-Sleep -Seconds 30  # Wait before the next check
+              }
 
-                # Set the variable to trigger the next stage
-                Write-Output "##vso[task.setvariable variable=changeRequestState;isOutput=true]$changeRequestState"
-
-  - stage: PostApproval
-    dependsOn: CreateChangeRequest
-    condition: succeeded()
-    jobs:
-      - job: PostApprovalActions
-        steps:
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "CR completed"
+- stage: LogCompletion
+  displayName: "Log Change Request Completion"
+  dependsOn: CreateAndMonitorChangeRequest
+  condition: eq(variables['environment'], 'production')  # Only run if environment is production
+  jobs:
+    - job: CompletionLog
+      displayName: "Completion Log"
+      steps:
+        - powershell: |
+            Write-Host 'CR completed'
+          displayName: "Log CR Completion"
