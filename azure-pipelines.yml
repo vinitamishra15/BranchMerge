@@ -6,22 +6,29 @@ pool: Default
 variables:
   sys_id: ''
 
-steps:
+stages:
+  - stage: assignVariable
+    jobs:
+      - job:
+        steps:
+          # Task 1: Assign value to sys_id variable
+          - task: PowerShell@2
+            displayName: 'Assign value to sys_id'
+            inputs:
+              targetType: 'inline'
+              script: |
+                $sys_id = "12345"  # You can change this value as needed
+                Write-Host "##vso[task.setvariable variable=sys_id]$sys_id"
+                Write-Host "sys_id has been set to $sys_id"
 
-# Task 1: Assign value to sys_id variable
-- task: PowerShell@2
-  displayName: 'Assign value to sys_id'
-  inputs:
-    targetType: 'inline'
-    script: |
-      $sys_id = "12345"  # You can change this value as needed
-      Write-Host "##vso[task.setvariable variable=sys_id]$sys_id"
-      Write-Host "sys_id has been set to $sys_id"
-
-# Task 2: Output the value of sys_id
-- task: PowerShell@2
-  displayName: 'Write sys_id value'
-  inputs:
-    targetType: 'inline'
-    script: |
-      Write-Host "The value of sys_id is: $env:sys_id"
+  - stage: printVariable
+    jobs:
+      - job:
+        steps:
+          # Task 2: Output the value of sys_id
+          - task: PowerShell@2
+            displayName: 'Write sys_id value'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "The value of sys_id is: $env:sys_id"
