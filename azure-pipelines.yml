@@ -15,7 +15,7 @@ trigger:
 pool: Default
 
 variables:
-  serviceNowInstance: 'https://dev273137.service-now.com/'
+  serviceNowInstance: 'https://dev273137.service-now.com'
   userName: 'admin'
   password: 'QoPpaNr5F*$9'
   changeRequestSysId: '0'
