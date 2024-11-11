@@ -70,7 +70,7 @@ stages:
                       Authorization = "Basic $auth"
                       "Content-Type" = "application/json"
                   }
-                  $status = $response.result.phase_state
+                  $status = $response.result.approval
                   Write-Host "Current Change Request state: $status"
 
                   if ($status -eq "Scheduled") {
