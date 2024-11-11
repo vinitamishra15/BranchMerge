@@ -3,7 +3,7 @@ trigger:
     include:
       - main
 
-pool: Default
+pool: WindowsPool
 
 variables:
   environment: 'production'  # Change to 'stage' or 'production' as needed
