@@ -18,7 +18,7 @@ variables:
   serviceNowInstance: 'https://dev212832.service-now.com'
   userName: 'admin'
   password: 'tt!rSy25Y^SK'
-  changeRequestSysId: '0'
+  changeRequestSysId: ''
 
 stages:
   - stage: CreateChangeRequest
@@ -42,9 +42,10 @@ stages:
                   'Content-Type' = 'application/json'
                 } -Body $body
                 
+                $changeRequestSysId = $response.result.sys_id
                 Write-Host "Change Request created with Sys ID: $($response.result.sys_id)"
                 Write-Output "##vso[task.setvariable variable=changeRequestSysId]$($response.result.sys_id)"
-                Write-Host "Change request created with $(changeRequestSysId)"
+                Write-Host "Change request created with $changeRequestSysId"
 
   - stage: ApprovalCheck
     dependsOn: CreateChangeRequest
