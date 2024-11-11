@@ -7,9 +7,9 @@ variables:
   sys_id: ''
 
 stages:
-  - stage: assignVariable
+  - stage: Build
     jobs:
-      - job:
+      - job: BuildJob
         steps:
           # Task 1: Assign value to sys_id variable
           - task: PowerShell@2
@@ -21,8 +21,8 @@ stages:
                 Write-Host "##vso[task.setvariable variable=sys_id;isOutput=true]$sys_id"
                 Write-Host "sys_id has been set to $sys_id"
 
-  - stage: printVariable
-    dependsOn: assignVariable
+  - stage: Deploy
+    dependsOn: Build
     jobs:
       - job:
         steps:
@@ -32,5 +32,5 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                $sys_id_from_build = $(Build.sys_id)
+                $sys_id_from_build = $(Build.BuildJob.sys_id)
                 Write-Host "The value of sys_id is: $sys_id_from_build"
