@@ -5,7 +5,6 @@ param (
     [string]$servicenowPassword
 )
 
-              $servicenowInstance = "$(servicenowInstance)"
               $changeRequestUrl = "$servicenowInstance/api/now/table/change_request"
               $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
 
