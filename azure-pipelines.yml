@@ -7,9 +7,9 @@ pool: WindowsPool
 
 variables:
   environment: 'production'  # Change to 'stage' or 'production' as needed
-  servicenowInstance: 'https://dev212832.service-now.com'
+  servicenowInstance: 'https://dev186424.service-now.com/'
   servicenowUser: 'admin' # ServiceNow username stored as a secret
-  servicenowPassword: 'tt!rSy25Y^SK' # ServiceNow password stored as a secret
+  servicenowPassword: '*Wej8z8GqES-' # ServiceNow password stored as a secret
 
 stages:
 - stage: CreateAndMonitorChangeRequest
@@ -22,35 +22,44 @@ stages:
         - task: PowerShell@2
           displayName: "Create Change Request"
           inputs:
-            targetType: 'inline'
-            script: |
-              # Create change request in ServiceNow
-              $servicenowInstance = "$(servicenowInstance)"
-              $changeRequestUrl = "$servicenowInstance/api/now/table/change_request"
-              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
+           targetType: filePath
+           filePath: $(Build.SourceDirectory)/CreateCR.ps1
+           arguments: |
+             -servicenowInstance "$(servicenowInstance)" `
+             -servicenowUser "$(servicenowUser)" `
+             -servicenowPassword "$(servicenowPassword)"
+           errorActionPreference: stop
+           
 
-              # Change Request body (customize based on your ServiceNow change request schema)
-              $changeRequestBody = @{
-                short_description = "Automated Change Request for Deployment in Production"
-                description = "Deployment to production environment"
-                category = "Software"
-                type = "Normal"
-                # Add other fields as needed
-              } | ConvertTo-Json
-
-              # Make HTTP POST request to create change request
-              $changeResponse = Invoke-RestMethod -Uri $changeRequestUrl -Method Post -Headers @{
-                  Authorization = "Basic $auth"
-                  "Content-Type" = "application/json"
-              } -Body $changeRequestBody
-
-              # Extract change request sys_id and state
-              $changeRequestSysId = $changeResponse.result.sys_id
-              Write-Host "Created Change Request with sys_id: $changeRequestSysId"
-              Write-Host "CR Number: $changeResponse.result.number"
-
-              # Store the sys_id as a pipeline variable for next steps
-              Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
+#            targetType: 'inline'
+#            script: |
+#              # Create change request in ServiceNow
+#              $servicenowInstance = "$(servicenowInstance)"
+#              $changeRequestUrl = "$servicenowInstance/api/now/table/change_request"
+#              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$(servicenowUser):$(servicenowPassword)"))
+#
+#              # Change Request body (customize based on your ServiceNow change request schema)
+#              $changeRequestBody = @{
+#                short_description = "Automated Change Request for Deployment in Production"
+#                description = "Deployment to production environment"
+#                category = "Software"
+#                type = "Normal"
+#                # Add other fields as needed
+#              } | ConvertTo-Json
+#
+#              # Make HTTP POST request to create change request
+#              $changeResponse = Invoke-RestMethod -Uri $changeRequestUrl -Method Post -Headers @{
+#                  Authorization = "Basic $auth"
+#                  "Content-Type" = "application/json"
+#              } -Body $changeRequestBody
+#
+#              # Extract change request sys_id and state
+#              $changeRequestSysId = $changeResponse.result.sys_id
+#              Write-Host "Created Change Request with sys_id: $changeRequestSysId"
+#              Write-Host "CR Number: $changeResponse.result.number"
+#
+#              # Store the sys_id as a pipeline variable for next steps
+#              Write-Host "##vso[task.setvariable variable=changeRequestSysId]$changeRequestSysId"
 
         - task: PowerShell@2
           displayName: "Monitor Change Request until Scheduled"
