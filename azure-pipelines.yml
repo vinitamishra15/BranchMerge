@@ -3,8 +3,8 @@
 #    include:
 #      - main
 
-#pool: WindowsPool
-pool: Default
+pool: WindowsPool
+#pool: Default
 
 variables:
   environment: 'production'  # Change to 'stage' or 'production' as needed
