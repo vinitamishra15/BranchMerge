@@ -24,7 +24,7 @@ stages:
           displayName: "Create Change Request"
           inputs:
            targetType: filePath
-           filePath: $(Build.SourceDirectory)/CreateCR.ps1
+           filePath: $(Build.SourcesDirectory)/CreateCR.ps1
            arguments: |
              -servicenowInstance "$(servicenowInstance)" `
              -servicenowUser "$(servicenowUser)" `
