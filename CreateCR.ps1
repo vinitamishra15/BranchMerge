@@ -7,7 +7,7 @@ param (
 
 Write-Host "Inside github script file: $servicenowInstance user: $servicenowUser pwd: $servicenowPassword"
               $changeRequestUrl = "$servicenowInstance/api/now/table/change_request"
-              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("$servicenowUser:$servicenowPassword"))
+              $auth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("${servicenowUser}:${servicenowPassword}"))
 
               # Change Request body (customize based on your ServiceNow change request schema)
               $changeRequestBody = @{
