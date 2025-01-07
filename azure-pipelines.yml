@@ -7,10 +7,11 @@ pool: WindowsPool
 #pool: Default
 
 variables:
-  environment: 'production'  # Change to 'stage' or 'production' as needed
-  servicenowInstance: 'https://dev186424.service-now.com/'
-  servicenowUser: 'admin' # ServiceNow username stored as a secret
-  servicenowPassword: '*Wej8z8GqES-' # ServiceNow password stored as a secret
+ - group: CloneVarGrp
+#  environment: 'production'  # Change to 'stage' or 'production' as needed
+#  servicenowInstance: 'https://dev186424.service-now.com/'
+#  servicenowUser: 'admin' # ServiceNow username stored as a secret
+#  servicenowPassword: '*Wej8z8GqES-' # ServiceNow password stored as a secret
 
 stages:
 - stage: CreateAndMonitorChangeRequest
