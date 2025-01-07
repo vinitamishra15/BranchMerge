@@ -16,7 +16,7 @@ variables:
 stages:
 - stage: CreateAndMonitorChangeRequest
   displayName: "Create and Monitor Change Request"
-  condition: eq(variables['environment'], 'production')  # Only run if environment is production
+#  condition: eq(variables['environment'], 'production')  # Only run if environment is production
   jobs:
     - job: CreateChangeRequest
       displayName: "Create Change Request in ServiceNow"
