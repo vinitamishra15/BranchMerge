@@ -25,7 +25,7 @@ stages:
           inputs:
             targetType: inline
             script: |
-              Write-Host "instance is : $servicenowInstance"
+              Write-Host "instance is : $(servicenowInstance)"
         - task: PowerShell@2
           displayName: "Create Change Request"
           inputs:
