@@ -32,8 +32,8 @@ stages:
            targetType: filePath
            filePath: $(Build.SourcesDirectory)/CreateCR.ps1
            arguments: |
-             -servicenowInstance "$(servicenowInstance)" `
-             -servicenowUser "$(servicenowUser)" `
+             -servicenowInstance "$(servicenowInstance)"
+             -servicenowUser "$(servicenowUser)"
              -servicenowPassword "$(servicenowPassword)"
            errorActionPreference: stop
            
