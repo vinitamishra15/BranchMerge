@@ -22,6 +22,11 @@ stages:
       displayName: "Create Change Request in ServiceNow"
       steps:
         - task: PowerShell@2
+          inputs:
+            targetType: inline
+            script: |
+              Write-Host "instance is : $servicenowInstance"
+        - task: PowerShell@2
           displayName: "Create Change Request"
           inputs:
            targetType: filePath
